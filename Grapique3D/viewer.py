@@ -70,6 +70,13 @@ void main() {
     outColor = vec4(1, 0, 0, 1);
 
 }"""
+COLOR_TEST = """#version 330 core
+uniform vec4 colors;
+out vec4 outColors;
+void main() {
+    outColors = vec4(1, 1, 0, 1);
+
+}"""
 
 
 # ------------  Scene object classes ------------------------------------------
@@ -96,9 +103,9 @@ class SimpleTriangle:
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
 
     def draw(self, projection, view, model, color_shader):
-        GL.glUseProgram(color_shader.glid)
         my_color_location = GL.glGetUniformLocation(color_shader.glid, 'color')
-        GL.glUniform3fv(my_color_location, 1, (0.6, 0.6, 0.9))
+        GL.glUniform3fv(my_color_location, 1, (0,0,1))
+        GL.glUseProgram(color_shader.glid)
 
         # draw triangle as GL_TRIANGLE vertex array, draw array call
         GL.glBindVertexArray(self.glid)
@@ -139,7 +146,7 @@ class Viewer:
         GL.glClearColor(0.1, 0.1, 0.1, 0.1)
 
         # compile and initialize shader programs once globally
-        self.color_shader = Shader(COLOR_VERT, COLOR_FRAG)
+        self.color_shader = Shader(COLOR_VERT, COLOR_TEST)
 
         # initially empty list of object to draw
         self.drawables = []
