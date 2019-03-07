@@ -11,6 +11,8 @@ import glfw                 # lean window system wrapper for OpenGL
 import numpy as np          # all matrix manipulations & OpenGL args
 from transform import translate, rotate, scale, vec, perspective
 from transform import Trackball, identity
+import pyassimp                     # 3D ressource loader
+import pyassimp.errors              # assimp error management + exceptions
 
 
 # ------------ low level OpenGL object wrappers --------------------
@@ -132,6 +134,25 @@ class VertexArray:
     def __del__(self):  # object dies => kill GL array and buffers from GPU
         GL.glDeleteVertexArrays(1, [self.glid])
         GL.glDeleteBuffers(len(self.buffers), self.buffers)
+
+
+class ColorMesh:
+
+    def __init__(self, attributes, index=None):
+        self.vertex_array = VertexArray(attributes, index)
+
+    def draw(self, projection, view, model, color_shader, **param):
+
+        names = ['view', 'projection', 'model']
+        loc = {n: GL.glGetUniformLocation(color_shader.glid, n) for n in names}
+        GL.glUseProgram(color_shader.glid)
+
+        GL.glUniformMatrix4fv(loc['view'], 1, True, view)
+        GL.glUniformMatrix4fv(loc['projection'], 1, True, projection)
+        GL.glUniformMatrix4fv(loc['model'], 1, True, model)
+
+        # draw triangle as GL_TRIANGLE vertex array, draw array call
+        self.vertex_array.execute(GL.GL_TRIANGLES)
 
 
 
@@ -321,12 +342,30 @@ class GLFWTrackball(Trackball):
         self.zoom(deltay, glfw.get_window_size(win)[1])
 
 
+# -------------- 3D ressource loader -----------------------------------------
+def load(file):
+    """ load resources from file using pyassimp, return list of ColorMesh """
+    try:
+        option = pyassimp.postprocess.aiProcessPreset_TargetRealtime_MaxQuality
+        scene = pyassimp.load(file, option)
+    except pyassimp.errors.AssimpError:
+        print('ERROR: pyassimp unable to load', file)
+        return []     # error reading => return empty list
+
+    #meshes = [ColorMesh([m.vertices, m.normals], m.faces) for m in scene.meshes]
+    #size = sum((mesh.faces.shape[0] for mesh in scene.meshes))
+    #print('Loaded %s\t(%d meshes, %d faces)' % (file, len(scene.meshes), size))
+
+    #pyassimp.release(scene)
+    return 5#meshes
+
 # -------------- main program and scene setup --------------------------------
 def main():
     """ create a window, add scene objects, then run rendering loop """
     viewer = Viewer()
     # place instances of our basic objects
-    viewer.add(SimpleTriangle())
+    mesh = load('suzanne.obj')
+    viewer.add(PyramidFaceColor())
 
     # start rendering loop
     viewer.run()
