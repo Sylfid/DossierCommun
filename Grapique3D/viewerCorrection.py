@@ -319,7 +319,6 @@ def main():
     """ create a window, add scene objects, then run rendering loop """
     viewer = Viewer()
 
-    open("suzanne.obj","r")
     # place instances of our basic objects
     viewer.add(*[mesh for file in sys.argv[1:] for mesh in load(file)])
     if len(sys.argv) < 2:

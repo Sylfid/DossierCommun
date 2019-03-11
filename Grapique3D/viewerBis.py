@@ -170,8 +170,8 @@ class SimpleTriangle:
 
 
         matrix_location = GL.glGetUniformLocation(color_shader.glid, 'matrix')
-        GL.glUniformMatrix4fv(matrix_location, 1, True, projection
-                @ view @ model)
+        GL.glUniformMatrix4fv(matrix_location, 1, True, projection)
+                #@ view @ model)
                 #rotate((0, 0, 1), 15) @ scale(2,1,1))
 
                 
@@ -207,8 +207,8 @@ class PyramidMixColor:
 
 
         matrix_location = GL.glGetUniformLocation(color_shader.glid, 'matrix')
-        GL.glUniformMatrix4fv(matrix_location, 1, True, projection
-                @ view @ model)
+        GL.glUniformMatrix4fv(matrix_location, 1, True, projection)
+                #@ view @ model)
                 #rotate((0, 0, 1), 15) @ scale(2,1,1))
 
                 
@@ -242,8 +242,8 @@ class PyramidFaceColor:
 
 
         matrix_location = GL.glGetUniformLocation(color_shader.glid, 'matrix')
-        GL.glUniformMatrix4fv(matrix_location, 1, True, projection
-                @ view @ model)
+        GL.glUniformMatrix4fv(matrix_location, 1, True, projection)
+                #@ view @ model)
                 #rotate((0, 0, 1), 15) @ scale(2,1,1))
 
         # draw triangle as GL_TRIANGLE vertex array, draw array call

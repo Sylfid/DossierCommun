@@ -11,8 +11,8 @@ import glfw                 # lean window system wrapper for OpenGL
 import numpy as np          # all matrix manipulations & OpenGL args
 from transform import translate, rotate, scale, vec, perspective
 from transform import Trackball, identity
-import pyassimp                     # 3D ressource loader
-import pyassimp.errors              # assimp error management + exceptions
+#import pyassimp                     # 3D ressource loader
+#import pyassimp.errors              # assimp error management + exceptions
 
 
 # ------------ low level OpenGL object wrappers --------------------
@@ -65,11 +65,13 @@ layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 color;
 
 out vec3 fragColor;
-uniform mat4 matrix;
+uniform mat4 projection;
+uniform mat4 view;
+uniform mat4 model;
 
 
 void main() {
-    gl_Position =  matrix *vec4(position, 1);
+    gl_Position =  projection * viex * model * vec4(position, 1);
     fragColor = color;
 
 }"""
@@ -172,9 +174,12 @@ class SimpleTriangle:
         GL.glUseProgram(color_shader.glid)
 
 
-        matrix_location = GL.glGetUniformLocation(color_shader.glid, 'matrix')
-        GL.glUniformMatrix4fv(matrix_location, 1, True, projection
-                @ view @ model)
+        matrix_location = GL.glGetUniformLocation(color_shader.glid, 'projection')
+        GL.glUniformMatrix4fv(matrix_location, 1, True, projection)
+        matrix_location = GL.glGetUniformLocation(color_shader.glid, 'view')
+        GL.glUniformMatrix4fv(matrix_location, 1, True, view)
+        matrix_location = GL.glGetUniformLocation(color_shader.glid, 'model')
+        GL.glUniformMatrix4fv(matrix_location, 1, True, model)
                 #rotate((0, 0, 1), 15) @ scale(2,1,1))
 
                 
@@ -203,10 +208,12 @@ class PyramidMixColor:
         GL.glUseProgram(color_shader.glid)
 
 
-        matrix_location = GL.glGetUniformLocation(color_shader.glid, 'matrix')
-        GL.glUniformMatrix4fv(matrix_location, 1, True, projection
-                @ view @ model)
-                #rotate((0, 0, 1), 15) @ scale(2,1,1))
+        matrix_location = GL.glGetUniformLocation(color_shader.glid, 'projection')
+        GL.glUniformMatrix4fv(matrix_location, 1, True, projection)
+        matrix_location = GL.glGetUniformLocation(color_shader.glid, 'view')
+        GL.glUniformMatrix4fv(matrix_location, 1, True, view)
+        matrix_location = GL.glGetUniformLocation(color_shader.glid, 'model')
+        GL.glUniformMatrix4fv(matrix_location, 1, True, model)
 
                 
 
@@ -237,11 +244,13 @@ class PyramidFaceColor:
     def draw(self, projection, view, model, color_shader):
         GL.glUseProgram(color_shader.glid)
 
+        matrix_location = GL.glGetUniformLocation(color_shader.glid, 'projection')
+        GL.glUniformMatrix4fv(matrix_location, 1, True, projection)
+        matrix_location = GL.glGetUniformLocation(color_shader.glid, 'view')
+        GL.glUniformMatrix4fv(matrix_location, 1, True, view)
+        matrix_location = GL.glGetUniformLocation(color_shader.glid, 'model')
+        GL.glUniformMatrix4fv(matrix_location, 1, True, model)
 
-        matrix_location = GL.glGetUniformLocation(color_shader.glid, 'matrix')
-        GL.glUniformMatrix4fv(matrix_location, 1, True, projection
-                @ view @ model)
-                #rotate((0, 0, 1), 15) @ scale(2,1,1))
 
         # draw triangle as GL_TRIANGLE vertex array, draw array call
                 
