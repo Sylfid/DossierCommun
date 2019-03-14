@@ -8,8 +8,8 @@ from itertools import cycle
 import sys
 
 # External, non built-in modules
-import OpenGL.GL as GL              # standard Python OpenGL wrapper
-import glfw                         # lean window system wrapper for OpenGL
+import OpenGL.GL as GL      # standard Python OpenGL wrapper
+import glfw                 # lean window system wrapper for OpenGL
 import numpy as np                  # all matrix manipulations & OpenGL args
 import pyassimp                     # 3D resource loader
 import pyassimp.errors              # Assimp error management + exceptions
@@ -152,7 +152,7 @@ class Node:
         """ Recursive draw, passing down named parameters & model matrix. """
         # merge named parameters given at initialization with those given here
         param = dict(param, **self.param)
-        # model = ...   # what to insert here for hierarchical update?
+        model = self.transform @ model
         for child in self.children:
             child.draw(projection, view, model, **param)
 
@@ -320,11 +320,37 @@ def main():
     viewer = Viewer()
 
     # place instances of our basic objects
-    viewer.add(*[mesh for file in sys.argv[1:] for mesh in load(file)])
-    if len(sys.argv) < 2:
-        print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
-              ' format supported by pyassimp.' % (sys.argv[0],))
+    #viewer.add(*[mesh for file in sys.argv[1:] for mesh in load(file)])
+    #if len(sys.argv) < 2:
+    #    print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
+    #          ' format supported by pyassimp.' % (sys.argv[0],))
+    cylinder = Cylinder()
+    base_shape = Node(transform=scale(0.3))     # make a thin cylinder
 
+    base_shape.add(cylinder)
+
+    # make a thin cylinder
+    arm_shape = Node(transform=translate(0,0,0.8)@scale(0.2))
+    arm_shape.add(cylinder)                     # shape of arm
+
+    # make a thin cylinder
+    forearm_shape = Node(transform=translate(0,0,0.9)@scale(0.1))
+    forearm_shape.add(cylinder)                 # shape of forearm
+
+    theta = 45.0        # base horizontal rotation angle
+    phi1 = 45.0         # arm angle
+    phi2 = 20.0         # forearm angle
+
+    transform_forearm = Node(transform=translate(0,0,0) @ rotate((1,0,0), phi2))
+    transform_forearm.add(forearm_shape)
+
+    transform_arm = Node(transform=rotate((1,0,0), phi1))
+    transform_arm.add(arm_shape, transform_forearm)
+
+    transform_base = Node(transform=rotate((1,0,0), theta))
+    transform_base.add(base_shape, transform_arm)
+
+    viewer.add(transform_base)
     # start rendering loop
     viewer.run()
 
