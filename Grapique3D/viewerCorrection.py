@@ -14,7 +14,10 @@ import numpy as np                  # all matrix manipulations & OpenGL args
 import pyassimp                     # 3D resource loader
 import pyassimp.errors              # Assimp error management + exceptions
 
-from transform import Trackball, identity, translate, rotate, scale
+from transform import Trackball, identity, translate, rotate, scale, lerp, vec
+from transform import (quaternion_slerp, quaternion_matrix, quaternion,
+                       quaternion_from_euler)
+from bisect import bisect_left
 
 
 # ------------ low level OpenGL object wrappers ----------------------------
@@ -110,6 +113,47 @@ class VertexArray:
     def __del__(self):  # object dies => kill GL array and buffers from GPU
         GL.glDeleteVertexArrays(1, [self.glid])
         GL.glDeleteBuffers(len(self.buffers), self.buffers)
+
+class KeyFrames:
+    """ Stores keyframe pairs for any value type with interpolation_function"""
+    def __init__(self, time_value_pairs, interpolation_function=lerp):
+        if isinstance(time_value_pairs, dict):  # convert to list of pairs
+            time_value_pairs = time_value_pairs.items()
+        keyframes = sorted(((key[0], key[1]) for key in time_value_pairs))
+        self.times, self.values = zip(*keyframes)  # pairs list -> 2 lists
+        self.interpolate = interpolation_function
+
+    def value(self, time):
+        """ Computes interpolated value from keyframes, for a given time """
+
+        # 1. ensure time is within bounds else return boundary keyframe
+        if time < self.times[0] or time > self.times[len(self.times)-1]:
+            print("Mauvaise utilisation interpolation")
+            exit(0)
+
+        # 2. search for closest index entry in self.times, using bisect_left function
+        position = bisect_left(self.times, time)
+        # 3. using the retrieved index, interpolate between the two neighboring values
+        # in self.values, using the initially stored self.interpolate function
+        fraction = (time - self.times[position - 1])/(self.times[position] - self.times[position-1])
+        return self.interpolate(self.values[position -1], self.values[position], fraction)
+
+
+class TransformKeyFrames:
+    """ KeyFrames-like object dedicated to 3D transforms """
+    def __init__(self, translate_keys, rotate_keys, scale_keys):
+        """ stores 3 keyframe sets for translation, rotation, scale """
+        self.translation = KeyFrames(translate_keys)
+        self.rotation = KeyFrames(rotate_keys)
+        self.scale = KeyFrames(scale_keys)
+
+    def value(self, time):
+        """ Compute each component's interpolation and compose TRS matrix """
+        result_translation = self.translation.value(time)
+        result_rotation = self.rotation.value(time)
+        result_scale = self.scale(time)
+
+        return ...
 
 
 # ------------  simple color fragment shader demonstrated in Practical 1 ------
@@ -354,6 +398,10 @@ def main():
 
     transform_base = Node(transform=rotate((1,0,0), theta))
     transform_base.add(base_shape, transform_arm)
+    vector_keyframes = KeyFrames({0: vec(1, 0, 0), 3: vec(0, 1, 0), 6: vec(0, 0, 1)})
+    print(vector_keyframes.value(1.5))
+
+
 
     viewer.add(transform_base)
     # start rendering loop
