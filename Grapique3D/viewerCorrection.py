@@ -159,12 +159,16 @@ class TransformKeyFrames:
 # ------------  simple color fragment shader demonstrated in Practical 1 ------
 COLOR_VERT = """#version 330 core
 layout(location = 0) in vec3 position;
-layout(location = 1) in vec3 color;
+layout(location = 1) in vec3 normal;
+
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+
+
 out vec3 fragColor;
+
 
 void main() {
     gl_Position = projection * view * model * vec4(position, 1);
@@ -220,6 +224,23 @@ class ColorMesh:
         # draw triangle as GL_TRIANGLE vertex array, draw array call
         self.vertex_array.execute(GL.GL_TRIANGLES)
 
+class PhongMesh:
+
+    def __init__(self, attributes, index=None):
+        self.vertex_array = VertexArray(attributes, index)
+
+    def draw(self, projection, view, model, color_shader, **param):
+
+        names = ['view', 'projection', 'model', 'normal']
+        loc = {n: GL.glGetUniformLocation(color_shader.glid, n) for n in names}
+        GL.glUseProgram(color_shader.glid)
+
+        GL.glUniformMatrix4fv(loc['view'], 1, True, view)
+        GL.glUniformMatrix4fv(loc['projection'], 1, True, projection)
+        GL.glUniformMatrix4fv(loc['model'], 1, True, model)
+
+        # draw triangle as GL_TRIANGLE vertex array, draw array call
+        self.vertex_array.execute(GL.GL_TRIANGLES)
 
 class SimpleTriangle(ColorMesh):
     """Hello triangle object"""
