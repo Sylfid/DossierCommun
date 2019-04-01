@@ -168,17 +168,21 @@ uniform mat4 projection;
 
 
 out vec3 fragColor;
+out vec4 positionFrag;
 
 
 void main() {
     gl_Position = projection * view * model * vec4(position, 1);
+    positionFrag = gl_Position;
     fragColor = color;
 }"""
 
 
 COLOR_FRAG = """#version 330 core
 in vec3 fragColor;
+in vec4 positionFrag;
 out vec4 outColor;
+
 void main() {
     outColor = vec4(fragColor, 1);
 }"""
