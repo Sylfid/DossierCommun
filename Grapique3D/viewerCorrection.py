@@ -194,6 +194,8 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
+uniform mat4 transinvmod;
+
 uniform vec3 color;
 uniform vec3 lightDirection;
 uniform vec3 Ks;
@@ -291,6 +293,7 @@ class ColorMesh:
         GL.glUniformMatrix4fv(loc['view'], 1, True, view)
         GL.glUniformMatrix4fv(loc['projection'], 1, True, projection)
         GL.glUniformMatrix4fv(loc['model'], 1, True, model)
+        GL.glUniformMatrix4fv(loc['transinvmod'], 1, True, np.transpose(np.inv(model)))
 
         # draw triangle as GL_TRIANGLE vertex array, draw array call
         self.vertex_array.execute(GL.GL_TRIANGLES)
