@@ -141,8 +141,8 @@ PHONG_VERT = """#version 330 core
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
 
-vec4 monde_normal;
-vec4 v;
+vec3 monde_normal;
+vec3 v;
 vec4 r;
 
 uniform mat4 model;
@@ -157,12 +157,16 @@ out vec3 fragColor;
 
 void main() {
     gl_Position = projection * view * model * vec4(position, 1);
-    monde_normal = transpose(inverse(model)) * vec4(normal, 0);
-    v = view * model * vec4(normal, 1);
+    monde_normal = transpose(inverse(mat3(model))) * normal;
+    v = -transpose(inverse(mat3(view*model)))*position;
     r = reflect(vec4(light_direction, 0), vec4(normal, 0));
-    fragColor = Ka + Kd*dot(vec3(monde_normal), light_direction) + Ks*pow(((dot(monde_normal, r))), s); //illumination equation
+    float PS = dot(monde_normal, light_direction);
+    if(PS < 0 ){PS=0;}
+    float PS2 = dot(reflect(light_direction, monde_normal),v);
+    if(PS2 < 0 ){PS2=0;}
+    fragColor = Ka + Kd*PS
+        + Ks*pow(PS2, s);
 }"""
-
 
 PHONG_FRAG = """#version 330 core
 in vec3 fragColor;
@@ -220,7 +224,7 @@ class PhongMesh:
         self.vertex_array = VertexArray(attributes, index)
 
     def draw(self, projection, view, model, color_shader, phong_shader,
-             Kd=(1, 0, 0), Ka=(0, 0, 0), Ks=(0, 0, 1), s=0.1, light_direction=(1, 0, 0),
+             Kd=(1, 0, 0), Ka=(0, 0, 0), Ks=(0.1, 0.1, 0.1), s=0.1, light_direction=(1, 0, 0),
              **param):
 
         names = ['view', 'projection', 'model', "Kd", "Ka", "Ks", "s", "light_direction"]
@@ -234,7 +238,7 @@ class PhongMesh:
         GL.glUniform3fv(loc['Kd'], 1, Kd) #couleur
         GL.glUniform3fv(loc['Ka'], 1, Ka) #couleur
         GL.glUniform3fv(loc['Ks'], 1, Ks) #couleur
-        GL.glUniform3fv(loc['s'], 1, s) #couleur
+        GL.glUniform1fv(loc['s'], 1, s) #couleur
 
         # draw triangle as GL_TRIANGLE vertex array, draw array call
         self.vertex_array.execute(GL.GL_TRIANGLES)
@@ -393,7 +397,7 @@ def main():
 
 
     # construct our robot arm hierarchy for drawing in viewer
-    cylinder = Cylinder(Kd=(1, 0, 0))
+    '''cylinder = Cylinder(Kd=(1, 0, 0))
     limb_shape = Node(transform=scale(1),
                       light_direction=(1/(math.sqrt(2)),
                                        0,
@@ -421,10 +425,13 @@ def main():
     cylinder = Cylinder(Kd=(1, 1, 1))
     forearm_shape = Node(transform=translate(0.0, 1.0, 0.0) @ scale(2, 0.1, 2))
     forearm_shape.add(cylinder)                 # shape of forearm
-    arm_shape.add(forearm_shape)
+    arm_shape.add(forearm_shape)'''
 
     # start rendering loop
-    viewer.add(limb_shape)
+    viewer.add(*[mesh for file in sys.argv[1:] for mesh in load(file)])
+    if len(sys.argv) < 2:
+        print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
+              ' format supported by pyassimp.' % (sys.argv[0],))
     viewer.run()
 
 
@@ -432,3 +439,9 @@ if __name__ == '__main__':
     glfw.init()                # initialize window system glfw
     main()                     # main function keeps variables locally scoped
     glfw.terminate()           # destroy all glfw windows and GL contexts
+
+
+#Faire attention a être dans le bon référentiel
+#Faire les calculs dans le fragment shader (evite les interpolations)
+#Faire les calculs des inverses dans le code python (plus rapide)
+#souvien toi stp
