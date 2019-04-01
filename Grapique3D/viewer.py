@@ -387,3 +387,15 @@ if __name__ == '__main__':
 
 
 
+Plugin 'tweekmonster/braceless.vim' " python folding
+Plugin 'hynek/vim-python-pep8-indent' " nice auto-indent
+Plugin 'davidhalter/jedi-vim' " autocompletion and doc completion (K)
+Plugin 'scrooloose/syntastic' " static python analysis with pylint (on save)
+Plugin 'ervandew/supertab' " use tab for completion
+Plugin 'nvie/vim-flake8' " static python analysis with flake8 (hit F7 key)
+Plugin 'scrooloose/nerdtree' " browse files tree
+Plugin 'tpope/vim-fugitive' " git
+Plugin 'vim-airline/vim-airline' " status bar (needs special fonts)
+Plugin 'vim-airline/vim-airline-themes' " bubblegum theme for status bar
+Plugin 'Lokaltog/vim-distinguished' " soft color scheme
+Plugin 'tomasr/molokai' " another color scheme
