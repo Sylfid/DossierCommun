@@ -14,174 +14,23 @@ import numpy as np                  # all matrix manipulations & OpenGL args
 import pyassimp                     # 3D resource loader
 import pyassimp.errors              # Assimp error management + exceptions
 
+from mesh import *
+from shader import *
+
 from transform import Trackball, identity, translate, rotate, scale, lerp, vec
 from transform import (quaternion_slerp, quaternion_matrix, quaternion,
                        quaternion_from_euler)
 from bisect import bisect_left
-from PIL import Image               # load images for textures
 from itertools import cycle
 
+from space import SystemeSolaire
+from node import Node
 
 # ------------ low level OpenGL object wrappers ----------------------------
-class Shader:
-    """ Helper class to create and automatically destroy shader program """
-    @staticmethod
-    def _compile_shader(src, shader_type):
-        src = open(src, 'r').read() if os.path.exists(src) else src
-        src = src.decode('ascii') if isinstance(src, bytes) else src
-        shader = GL.glCreateShader(shader_type)
-        GL.glShaderSource(shader, src)
-        GL.glCompileShader(shader)
-        status = GL.glGetShaderiv(shader, GL.GL_COMPILE_STATUS)
-        src = ('%3d: %s' % (i+1, l) for i, l in enumerate(src.splitlines()))
-        if not status:
-            log = GL.glGetShaderInfoLog(shader).decode('ascii')
-            GL.glDeleteShader(shader)
-            src = '\n'.join(src)
-            print('Compile failed for %s\n%s\n%s' % (shader_type, log, src))
-            return None
-        return shader
 
-    def __init__(self, vertex_source, fragment_source):
-        """ Shader can be initialized with raw strings or source file names """
-        self.glid = None
-        vert = self._compile_shader(vertex_source, GL.GL_VERTEX_SHADER)
-        frag = self._compile_shader(fragment_source, GL.GL_FRAGMENT_SHADER)
-        if vert and frag:
-            self.glid = GL.glCreateProgram()  # pylint: disable=E1111
-            GL.glAttachShader(self.glid, vert)
-            GL.glAttachShader(self.glid, frag)
-            GL.glLinkProgram(self.glid)
-            GL.glDeleteShader(vert)
-            GL.glDeleteShader(frag)
-            status = GL.glGetProgramiv(self.glid, GL.GL_LINK_STATUS)
-            if not status:
-                print(GL.glGetProgramInfoLog(self.glid).decode('ascii'))
-                GL.glDeleteProgram(self.glid)
-                self.glid = None
-
-    def __del__(self):
-        GL.glUseProgram(0)
-        if self.glid:                      # if this is a valid shader object
-            GL.glDeleteProgram(self.glid)  # object dies => destroy GL object
-
-
-class VertexArray:
-    """ helper class to create and self destroy OpenGL vertex array objects."""
-    def __init__(self, attributes, index=None, usage=GL.GL_STATIC_DRAW):
-        """ Vertex array from attributes and optional index array. Vertex
-            Attributes should be list of arrays with one row per vertex. """
-
-        # create vertex array object, bind it
-        self.glid = GL.glGenVertexArrays(1)
-        GL.glBindVertexArray(self.glid)
-        self.buffers = []  # we will store buffers in a list
-        nb_primitives, size = 0, 0
-
-        # load buffer per vertex attribute (in list with index = shader layout)
-        for loc, data in enumerate(attributes):
-            if data is not None:
-                # bind a new vbo, upload its data to GPU, declare size and type
-                self.buffers += [GL.glGenBuffers(1)]
-                data = np.array(data, np.float32, copy=False)  # ensure format
-                nb_primitives, size = data.shape
-                GL.glEnableVertexAttribArray(loc)
-                GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.buffers[-1])
-                GL.glBufferData(GL.GL_ARRAY_BUFFER, data, usage)
-                GL.glVertexAttribPointer(loc, size, GL.GL_FLOAT, False, 0, None)
-
-        # optionally create and upload an index buffer for this object
-        self.draw_command = GL.glDrawArrays
-        self.arguments = (0, nb_primitives)
-        if index is not None:
-            self.buffers += [GL.glGenBuffers(1)]
-            index_buffer = np.array(index, np.int32, copy=False)  # good format
-            GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.buffers[-1])
-            GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, index_buffer, usage)
-            self.draw_command = GL.glDrawElements
-            self.arguments = (index_buffer.size, GL.GL_UNSIGNED_INT, None)
-
-        # cleanup and unbind so no accidental subsequent state update
-        GL.glBindVertexArray(0)
-        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
-        GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, 0)
-
-    def execute(self, primitive):
-        """ draw a vertex array, either as direct array or indexed array """
-        GL.glBindVertexArray(self.glid)
-        self.draw_command(primitive, *self.arguments)
-        GL.glBindVertexArray(0)
-
-    def __del__(self):  # object dies => kill GL array and buffers from GPU
-        GL.glDeleteVertexArrays(1, [self.glid])
-        GL.glDeleteBuffers(len(self.buffers), self.buffers)
 
 # -------------- OpenGL Texture Wrapper ---------------------------------------
-class Texture:
-    """ Helper class to create and automatically destroy textures """
-    def __init__(self, file, wrap_mode=GL.GL_REPEAT, min_filter=GL.GL_LINEAR,
-                 mag_filter=GL.GL_LINEAR_MIPMAP_LINEAR):
-        self.glid = GL.glGenTextures(1)
-        try:
-            # imports image as a numpy array in exactly right format
-            tex = np.asarray(Image.open(file).convert('RGBA'))
-            GL.glBindTexture(GL.GL_TEXTURE_2D, self.glid)
-            GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA, tex.shape[1],
-                            tex.shape[0], 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, tex)
-            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, wrap_mode)
-            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, wrap_mode)
-            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, min_filter)
-            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, mag_filter)
-            GL.glGenerateMipmap(GL.GL_TEXTURE_2D)
-            message = 'Loaded texture %s\t(%s, %s, %s, %s)'
-            print(message % (file, tex.shape, wrap_mode, min_filter, mag_filter))
-        except FileNotFoundError:
-            print("ERROR: unable to load texture file %s" % file)
 
-    def __del__(self):  # delete GL texture from GPU when object dies
-        GL.glDeleteTextures(self.glid)
-
-
-class KeyFrames:
-    """ Stores keyframe pairs for any value type with interpolation_function"""
-    def __init__(self, time_value_pairs, interpolation_function=lerp):
-        if isinstance(time_value_pairs, dict):  # convert to list of pairs
-            time_value_pairs = time_value_pairs.items()
-        keyframes = sorted(((key[0], key[1]) for key in time_value_pairs))
-        self.times, self.values = zip(*keyframes)  # pairs list -> 2 lists
-        self.interpolate = interpolation_function
-
-    def value(self, time):
-        """ Computes interpolated value from keyframes, for a given time """
-
-        # 1. ensure time is within bounds else return boundary keyframe
-        if time < self.times[0] or time > self.times[len(self.times)-1]:
-            print("Mauvaise utilisation interpolation")
-            exit(0)
-
-        # 2. search for closest index entry in self.times, using bisect_left function
-        position = bisect_left(self.times, time)
-        # 3. using the retrieved index, interpolate between the two neighboring values
-        # in self.values, using the initially stored self.interpolate function
-        fraction = (time - self.times[position - 1])/(self.times[position] - self.times[position-1])
-        return self.interpolate(self.values[position -1], self.values[position], fraction)
-
-
-class TransformKeyFrames:
-    """ KeyFrames-like object dedicated to 3D transforms """
-    def __init__(self, translate_keys, rotate_keys, scale_keys):
-        """ stores 3 keyframe sets for translation, rotation, scale """
-        self.translation = KeyFrames(translate_keys)
-        self.rotation = KeyFrames(rotate_keys, quaternion_slerp)
-        self.scale = KeyFrames(scale_keys)
-
-    def value(self, time):
-        """ Compute each component's interpolation and compose TRS matrix """
-        result_translation = translate(self.translation.value(time))
-        result_rotation = quaternion_matrix(self.rotation.value(time)) 
-        result_scale = scale(self.scale.value(time))
-
-        return result_translation @ result_rotation @ result_scale
 
 
 # ------------  simple color fragment shader demonstrated in Practical 1 ------
@@ -242,123 +91,16 @@ void main() {
 }"""
 
 
-# -------------- Example texture plane class ----------------------------------
-TEXTURE_VERT = """#version 330 core
-uniform mat4 modelviewprojection;
-layout(location = 0) in vec3 position;
-layout(location = 1) in vec2 tex_uv;
-out vec2 fragTexCoord;
-void main() {
-    gl_Position = modelviewprojection * vec4(position, 1);
-    fragTexCoord = tex_uv;
-}"""
-
-TEXTURE_FRAG = """#version 330 core
-uniform sampler2D diffuseMap;
-in vec2 fragTexCoord;
-out vec4 outColor;
-void main() {
-    outColor = texture(diffuseMap, fragTexCoord);
-}"""
 
 
 
 # ------------  Scene object classes ------------------------------------------
 
-class Node:
-    """ Scene graph transform and parameter broadcast node """
-    def __init__(self, name='', children=(), transform=identity(), **param):
-        self.transform, self.param, self.name = transform, param, name
-        self.children = list(iter(children))
-
-    def add(self, *drawables):
-        """ Add drawables to this node, simply updating children list """
-        self.children.extend(drawables)
-
-    def draw(self, projection, view, model, **param):
-        """ Recursive draw, passing down named parameters & model matrix. """
-        # merge named parameters given at initialization with those given here
-        param = dict(param, **self.param)
-        model = self.transform @ model
-        for child in self.children:
-            child.draw(projection, view, model, **param)
 
 
-class KeyFrameControlNode(Node):
-    """ Place node with transform keys above a controlled subtree """
-    def __init__(self, translate_keys, rotate_keys, scale_keys, **kwargs):
-        super().__init__(**kwargs)
-        self.keyframes = TransformKeyFrames(translate_keys, rotate_keys, scale_keys)
-
-    def draw(self, projection, view, model, **param):
-        """ When redraw requested, interpolate our node transform from keys """
-        self.transform = self.keyframes.value(glfw.get_time())
-        super().draw(projection, view, model, **param)
 
 
-# mesh to refactor all previous classes
-class ColorMesh:
 
-    def __init__(self, attributes, index=None):
-        self.vertex_array = VertexArray(attributes, index)
-
-    def draw(self, projection, view, model, color_shader, **param):
-
-        names = ['view', 'projection', 'model', 'transinvmod',
-                 'invview']
-        loc = {n: GL.glGetUniformLocation(color_shader.glid, n) for n in names}
-        GL.glUseProgram(color_shader.glid)
-
-        GL.glUniformMatrix4fv(loc['view'], 1, True, view)
-        GL.glUniformMatrix4fv(loc['projection'], 1, True, projection)
-        GL.glUniformMatrix4fv(loc['model'], 1, True, model)
-        GL.glUniformMatrix3fv(loc['transinvmod'], 1, True,
-                              np.transpose(np.linalg.inv(model[:3,:3])))
-        GL.glUniformMatrix4fv(loc['invview'], 1, True, np.linalg.inv(view))
-
-        # draw triangle as GL_TRIANGLE vertex array, draw array call
-        self.vertex_array.execute(GL.GL_TRIANGLES)
-
-class PhongMesh:
-
-    def __init__(self, attributes, index=None):
-        self.vertex_array = VertexArray(attributes, index)
-
-    def draw(self, projection, view, model, color_shader, color
-            =(1.,0.,0.), light = (0.,1.,0.),Ka=(0.2,0.,0.),
-            Ks=(0.3,0.3,0.3), s=0.01, **param):
-        names = ['view', 'projection', 'model', 'normal','color',
-        'lightDirection', 'Ka', 'Ks', 's', 'transinvmod',
-                 'invview']
-        loc = {n: GL.glGetUniformLocation(color_shader.glid, n) for n in names}
-        GL.glUseProgram(color_shader.glid)
-
-        GL.glUniformMatrix4fv(loc['view'], 1, True, view)
-        GL.glUniformMatrix4fv(loc['projection'], 1, True, projection)
-        GL.glUniformMatrix4fv(loc['model'], 1, True, model)
-        GL.glUniformMatrix3fv(loc['transinvmod'], 1, True, 
-                              np.transpose(np.linalg.inv(model[:3,:3])))
-        GL.glUniformMatrix4fv(loc['invview'], 1, True,
-                              np.linalg.inv(view))
-        GL.glUniform3fv(loc['color'], 1, color)
-        GL.glUniform3fv(loc['lightDirection'], 1, light)
-        GL.glUniform3fv(loc['Ka'], 1, Ka)
-        GL.glUniform3fv(loc['Ks'], 1, Ks)
-        GL.glUniform1fv(loc['s'], 1, s)
-
-        # draw triangle as GL_TRIANGLE vertex array, draw array call
-        self.vertex_array.execute(GL.GL_TRIANGLES)
-
-class SimpleTriangle(ColorMesh):
-    """Hello triangle object"""
-
-    def __init__(self):
-
-        # triangle position buffer
-        position = np.array(((0, .5, 0), (.5, -.5, 0), (-.5, -.5, 0)), 'f')
-        color = np.array(((1, 0, 0), (0, 1, 0), (0, 0, 1)), 'f')
-
-        super().__init__([position, color])
 
 
 class Cylinder(Node):
@@ -368,169 +110,13 @@ class Cylinder(Node):
         self.add(*load('cylinder.obj'))  # just load the cylinder from file
 
 
-# -------------- 3D ressource loader -----------------------------------------
-def load(file):
-    """ load resources from file using pyassimp, return list of ColorMesh """
-    try:
-        option = pyassimp.postprocess.aiProcessPreset_TargetRealtime_MaxQuality
-        scene = pyassimp.load(file, option)
-    except pyassimp.errors.AssimpError:
-        print('ERROR: pyassimp unable to load', file)
-        return []  # error reading => return empty list
-
-    meshes = [PhongMesh([m.vertices, m.normals], m.faces) for m in scene.meshes]
-    size = sum((mesh.faces.shape[0] for mesh in scene.meshes))
-    print('Loaded %s\t(%d meshes, %d faces)' % (file, len(scene.meshes), size))
-
-    pyassimp.release(scene)
-    return meshes
-
-# -------------- 3D textured mesh loader ---------------------------------------
-def load_textured(file):
-    """ load resources using pyassimp, return list of TexturedMeshes """
-    try:
-        option = pyassimp.postprocess.aiProcessPreset_TargetRealtime_MaxQuality
-        scene = pyassimp.load(file, option)
-    except pyassimp.errors.AssimpError:
-        print('ERROR: pyassimp unable to load', file)
-        return []  # error reading => return empty list
-
-    # Note: embedded textures not supported at the moment
-    path = os.path.dirname(file)
-    path = os.path.join('.', '') if path == '' else path
-    for mat in scene.materials:
-        mat.tokens = dict(reversed(list(mat.properties.items())))
-        if 'file' in mat.tokens:  # texture file token
-            tname = mat.tokens['file'].split('/')[-1].split('\\')[-1]
-            # search texture in file's whole subdir since path often screwed up
-            tname = [os.path.join(d[0], f) for d in os.walk(path) for f in d[2]
-                     if tname.startswith(f) or f.startswith(tname)]
-            if tname:
-                mat.texture = tname[0]
-            else:
-                print('Failed to find texture:', tname)
-
-    # prepare textured mesh
-    meshes = []
-    for mesh in scene.meshes:
-        texture = scene.materials[mesh.materialindex].texture
-
-        # tex coords in raster order: compute 1 - y to follow OpenGL convention
-        tex_uv = ((0, 1) + mesh.texturecoords[0][:, :2] * (1, -1)
-                  if mesh.texturecoords.size else None)
-
-        # create the textured mesh object from texture, attributes, and indices
-        meshes.append(TexturedMesh(texture, [mesh.vertices, tex_uv], mesh.faces))
-
-    size = sum((mesh.faces.shape[0] for mesh in scene.meshes))
-    print('Loaded %s\t(%d meshes, %d faces)' % (file, len(scene.meshes), size))
-
-    pyassimp.release(scene)
-    return meshes
 
 
 
-class TexturedPlane:
-    """ Simple first textured object """
-
-    def __init__(self, file):
-        # feel free to move this up in the viewer as per other practicals
-        self.shader = Shader(TEXTURE_VERT, TEXTURE_FRAG)
-
-        # triangle and face buffers
-        vertices = 100 * np.array(((-1, -1, 0), (1, -1, 0), (1, 1, 0), (-1, 1, 0)), np.float32)
-        faces = np.array(((0, 1, 2), (0, 2, 3)), np.uint32)
-        self.vertex_array = VertexArray([vertices], faces)
-
-        # interactive toggles
-        self.wrap = cycle([GL.GL_REPEAT, GL.GL_MIRRORED_REPEAT,
-                           GL.GL_CLAMP_TO_BORDER, GL.GL_CLAMP_TO_EDGE])
-        self.filter = cycle([(GL.GL_NEAREST, GL.GL_NEAREST),
-                             (GL.GL_LINEAR, GL.GL_LINEAR),
-                             (GL.GL_LINEAR, GL.GL_LINEAR_MIPMAP_LINEAR)])
-        self.wrap_mode, self.filter_mode = next(self.wrap), next(self.filter)
-        self.file = file
-
-        # setup texture and upload it to GPU
-        self.texture = Texture(file, self.wrap_mode, *self.filter_mode)
-
-    def draw(self, projection, view, model, win=None, **_kwargs):
-
-        # some interactive elements
-        if glfw.get_key(win, glfw.KEY_E) == glfw.PRESS:
-            self.wrap_mode = next(self.wrap)
-            self.texture = Texture(self.file, self.wrap_mode, *self.filter_mode)
-
-        if glfw.get_key(win, glfw.KEY_R) == glfw.PRESS:
-            self.filter_mode = next(self.filter)
-            self.texture = Texture(self.file, self.wrap_mode, *self.filter_mode)
-
-        GL.glUseProgram(self.shader.glid)
-
-        # projection geometry
-        loc = GL.glGetUniformLocation(self.shader.glid, 'modelviewprojection')
-        GL.glUniformMatrix4fv(loc, 1, True, projection @ view @ model)
-
-        # texture access setups
-        loc = GL.glGetUniformLocation(self.shader.glid, 'diffuseMap')
-        GL.glActiveTexture(GL.GL_TEXTURE0)
-        GL.glBindTexture(GL.GL_TEXTURE_2D, self.texture.glid)
-        GL.glUniform1i(loc, 0)
-        self.vertex_array.execute(GL.GL_TRIANGLES)
-
-        # leave clean state for easier debugging
-        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
-        GL.glUseProgram(0)
 
 
-class TexturedMesh:
-    """ Simple first textured object """
-
-    def __init__(self, texture, attribute, index=None):
-        # feel free to move this up in the viewer as per other practicals
-        self.shader = Shader(TEXTURE_VERT, TEXTURE_FRAG)
-        self.vertex_array = VertexArray(attribute, index)
 
 
-        # interactive toggles
-        self.wrap = cycle([GL.GL_REPEAT, GL.GL_MIRRORED_REPEAT,
-                           GL.GL_CLAMP_TO_BORDER, GL.GL_CLAMP_TO_EDGE])
-        self.filter = cycle([(GL.GL_NEAREST, GL.GL_NEAREST),
-                             (GL.GL_LINEAR, GL.GL_LINEAR),
-                             (GL.GL_LINEAR, GL.GL_LINEAR_MIPMAP_LINEAR)])
-        self.wrap_mode, self.filter_mode = next(self.wrap), next(self.filter)
-
-        # setup texture and upload it to GPU
-        self.file = texture
-        self.texture = Texture(self.file, self.wrap_mode, *self.filter_mode)
-
-    def draw(self, projection, view, model, win=None, **_kwargs):
-
-        # some interactive elements
-        if glfw.get_key(win, glfw.KEY_E) == glfw.PRESS:
-            self.wrap_mode = next(self.wrap)
-            self.texture = Texture(self.file, self.wrap_mode, *self.filter_mode)
-
-        if glfw.get_key(win, glfw.KEY_R) == glfw.PRESS:
-            self.filter_mode = next(self.filter)
-            self.texture = Texture(self.file, self.wrap_mode, *self.filter_mode)
-
-        GL.glUseProgram(self.shader.glid)
-
-        # projection geometry
-        loc = GL.glGetUniformLocation(self.shader.glid, 'modelviewprojection')
-        GL.glUniformMatrix4fv(loc, 1, True, projection @ view @ model)
-
-        # texture access setups
-        loc = GL.glGetUniformLocation(self.shader.glid, 'diffuseMap')
-        GL.glActiveTexture(GL.GL_TEXTURE0)
-        GL.glBindTexture(GL.GL_TEXTURE_2D, self.texture.glid)
-        GL.glUniform1i(loc, 0)
-        self.vertex_array.execute(GL.GL_TRIANGLES)
-
-        # leave clean state for easier debugging
-        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
-        GL.glUseProgram(0)
 
 # ------------  Viewer class & window management ------------------------------
 class GLFWTrackball(Trackball):
@@ -666,7 +252,8 @@ def main():
     transform_arm.add(arm_shape, transform_forearm)
 
     transform_base = Node(transform=rotate((1,0,0), theta))
-    transform_base.add(base_shape, transform_arm)'''
+    transform_base.add(base_shape, transform_arm)
+    viewer.add(transform_base)'''
     '''a = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
     b = np.array([[1,0,0,0],[0,0,1,0],[0,1,0,0],[0,0,0,1]])
     vector_keyframes = KeyFrames({0: a, 3: b, 6: b})
@@ -674,18 +261,20 @@ def main():
     print(vector_keyframes.value(1.5))'''
 
 
-    translate_keys = {0: vec(0, 0, 0), 2: vec(1, 1, 0), 4: vec(0, 0, 0)}
+    '''translate_keys = {0: vec(0, 0, 0), 2: vec(1, 1, 0), 4: vec(0, 0, 0)}
     rotate_keys = {0: quaternion(), 2: quaternion_from_euler(180, 45, 90),
                    3: quaternion_from_euler(180, 0, 180), 4: quaternion()}
     scale_keys = {0: 1, 2: 0.5, 4: 1}
     keynode = KeyFrameControlNode(translate_keys, rotate_keys, scale_keys)
     keynode.add(Cylinder())
-    viewer.add(keynode)
+    viewer.add(keynode)'''
 
+    system = SystemeSolaire()
+    viewer.add(system)
 
     #viewer.add(transform_base)'''
     '''viewer.add(*[mesh for file in sys.argv[1:] for mesh in
-                 load(file)])
+                 load_textured(file)])
     if len(sys.argv) < 2:
         print('Usage:\n\t%s [3dfile]*\n\n3dfile\t\t the filename of a model in'
               ' format supported by pyassimp.' % (sys.argv[0],))
