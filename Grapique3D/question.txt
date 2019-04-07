@@ -1,0 +1,6 @@
+Comment illuminer la scene avec les obj
+et aussi ca marche pas Ks
+enlever les objets : il suffit de les enlever de la liste ?
+gestion des ombres
+gestion des points lumineux
+Possiblement : keyFrames lumineux ?
