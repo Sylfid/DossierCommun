@@ -77,3 +77,4 @@ class KeyFrameControlNode(Node):
         """ When redraw requested, interpolate our node transform from keys """
         self.transform = self.keyframes.valueCycle(glfw.get_time())
         super().draw(projection, view, model, **param)
+
