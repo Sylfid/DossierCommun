@@ -1,9 +1,10 @@
-from transform import Trackball, identity, translate, rotate, scale, lerp, vec
+from transform import translate, rotate, scale, lerp, vec, lerpCircle
 from transform import (quaternion_slerp, quaternion_matrix, quaternion,
                        quaternion_from_euler)
 from node import Node
 import glfw
 from bisect import bisect_left
+
 
 class KeyFrames:
     """ Stores keyframe pairs for any value type with interpolation_function"""
@@ -45,16 +46,16 @@ class KeyFrames:
 
 class TransformKeyFrames:
     """ KeyFrames-like object dedicated to 3D transforms """
-    def __init__(self, translate_keys, rotate_keys, scale_keys):
+    def __init__(self, translate_keys, rotate_keys, scale_keys, interpolation_translate=lerp):
         """ stores 3 keyframe sets for translation, rotation, scale """
-        self.translation = KeyFrames(translate_keys)
+        self.translation = KeyFrames(translate_keys, interpolation_translate)
         self.rotation = KeyFrames(rotate_keys, quaternion_slerp)
         self.scale = KeyFrames(scale_keys)
 
     def value(self, time):
         """ Compute each component's interpolation and compose TRS matrix """
         result_translation = translate(self.translation.value(time))
-        result_rotation = quaternion_matrix(self.rotation.value(time)) 
+        result_rotation = quaternion_matrix(self.rotation.value(time))
         result_scale = scale(self.scale.value(time))
 
         return result_translation @ result_rotation @ result_scale
@@ -62,16 +63,17 @@ class TransformKeyFrames:
     def valueCycle(self, time):
         """ Compute each component's interpolation and compose TRS matrix """
         result_translation = translate(self.translation.valueCycle(time))
-        result_rotation = quaternion_matrix(self.rotation.valueCycle(time)) 
+        result_rotation = quaternion_matrix(self.rotation.valueCycle(time))
         result_scale = scale(self.scale.valueCycle(time))
 
         return result_translation @ result_rotation @ result_scale
 
+
 class KeyFrameControlNode(Node):
     """ Place node with transform keys above a controlled subtree """
-    def __init__(self, translate_keys, rotate_keys, scale_keys, **kwargs):
+    def __init__(self, translate_keys, rotate_keys, scale_keys, interpolate_translate = lerp, **kwargs):
         super().__init__(**kwargs)
-        self.keyframes = TransformKeyFrames(translate_keys, rotate_keys, scale_keys)
+        self.keyframes = TransformKeyFrames(translate_keys, rotate_keys, scale_keys, lerpCircle)
 
     def draw(self, projection, view, model, **param):
         """ When redraw requested, interpolate our node transform from keys """

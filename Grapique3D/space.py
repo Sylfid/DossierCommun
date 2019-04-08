@@ -12,18 +12,35 @@ class Planete(KeyFrameControlNode):
 
     def __init__(self, planete, vrot, periode, vecDeb, scale):
         translate = {0: vecDeb, 1: vecDeb}
-        periode2 = int(periode/4)
-        rotate = {0: quaternion(), periode2:
+        rotate = {0: quaternion(), periode/4:
                   quaternion_from_axis_angle(
-            vrot, degrees= 90), 2*periode2:
+            vrot, degrees= 90), periode/2:
                   quaternion_from_axis_angle(
-            vrot, degrees = 180), 3*periode2:
+            vrot, degrees = 180), 3*periode/4:
                   quaternion_from_axis_angle(
-            vrot, degrees = 270), 4*periode2: quaternion()}
+            vrot, degrees = 270), periode: quaternion()}
         scale = {0: scale, 2: scale}
         super().__init__(translate, rotate, scale)
         self.add(*load_textured(planete))
 
+class Planete2(KeyFrameControlNode):
+
+    def __init__(self, planete, vrot, periode, vecDeb, scale, vrot2,
+                 periode2):
+        translate = {0: vecDeb, periode2/4: rotate(vrot2,90) @ vecDeb,
+                     periode2/2: rotate(vrot2,180)@vecDeb,
+                     3*periode2/4: rotate(vrot2, 270)@vecDeb,
+                     periode2: vecDeb}
+        rotate = {0: quaternion(), periode/4:
+                  quaternion_from_axis_angle(
+            vrot, degrees= 90), periode/2:
+                  quaternion_from_axis_angle(
+            vrot, degrees = 180), 3*periode/4:
+                  quaternion_from_axis_angle(
+            vrot, degrees = 270), periode: quaternion()}
+        scale = {0: scale, 2: scale}
+        super().__init__(translate, rotate,scale, lerpCircle)
+        self.add(*load_textured(planete))
 
 
 class PlaneteTransform(KeyFrameControlNode):
@@ -34,7 +51,7 @@ class PlaneteTransform(KeyFrameControlNode):
         demi_grand_axe = math.pow(periode2*periode2*66740*math.pow(10,15)/(2*np.pi*np.pi),1/3)
         exentricite = ((np.linalg.norm(vecDeb)-demi_grand_axe)
                        / demi_grand_axe)
-        rayon = []
+        '''rayon = []
         angle = []
         angle.append(0)
         rayon.append(np.linalg.norm(vecDeb))
@@ -52,9 +69,14 @@ class PlaneteTransform(KeyFrameControlNode):
         rotate = {i*periode2/32:
                   quaternion_from_axis_angle(vrot2,
                                              degrees=angle[i]) for i in
-        range(33)}
-        #rotate = {0: quaternion(), 2: quaternion(), 4:
-        #          quaternion()}
+        range(33)}'''
+        rotate = {0: quaternion(), periode2/4:
+                  quaternion_from_axis_angle(
+            vrot2, degrees= 90), 2*periode2/4:
+                  quaternion_from_axis_angle(
+            vrot2, degrees = 180), 3*periode2/4:
+                  quaternion_from_axis_angle(
+            vrot2, degrees = 270), periode2: quaternion()}
         scale2 = {0: 1, 2: 1, 4: 1}
         super().__init__(translate, rotate, scale2)
         planeteP = Planete(planete, vrot, periode1, vecDeb,
@@ -130,11 +152,14 @@ class SystemeSolaire(Node):
         rotate_keys_t_sun = {0: quaternion(), 2: quaternion()}
         scale_keys_t_sun = {0: 1, 2: 1, 4: 1}
 
-        transform_terre = PlaneteTransform('objet3D/Earth_v1_L3.123cce489830-ca89-49f4-bb2a-c921cce7adb2/13902_Earth_v1_l3.obj',
-                                   np.array([1,1,0]), 24,
-                                   np.array([1500,0,0]),1,np.array([1,1,0]),100)
+        #transform_terre = PlaneteTransform('objet3D/Earth_v1_L3.123cce489830-ca89-49f4-bb2a-c921cce7adb2/13902_Earth_v1_l3.obj',
+        #                           np.array([1,1,0]), 24,
+        #                           np.array([9500,0,0]),1,np.array([1,1,0]),100)
 
         #transform_terre.add(terre)
+        transform_terre = Planete2('objet3D/Earth_v1_L3.123cce489830-ca89-49f4-bb2a-c921cce7adb2/13902_Earth_v1_l3.obj',np.array([1,1,0]), 24,
+                                   np.array([9500,0,0]),1,np.array([1,1,0]),100)
+
 
         transform_base = KeyFrameControlNode(translate_keys_t_sun,
                                    rotate_keys_t_sun,

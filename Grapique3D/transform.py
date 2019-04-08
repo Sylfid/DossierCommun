@@ -29,6 +29,12 @@ def lerp(point_a, point_b, fraction):
     return point_a + fraction * (point_b - point_a)
 
 
+def lerpCircle(point_a, point_b, fraction):
+
+    moyenne = (np.linalg.norm(point_a) + np.linalg.norm(point_b)) / 2
+    return (point_a + fraction * (point_b - point_a)) * moyenne
+
+
 # Typical 4x4 matrix utilities for OpenGL ------------------------------------
 def identity():
     """ 4x4 identity matrix """
