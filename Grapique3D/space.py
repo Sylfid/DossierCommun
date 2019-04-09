@@ -11,7 +11,7 @@ import numpy as np
 class Planete(KeyFrameControlNode):
 
     def __init__(self, planete, vrot, periode, vecDeb, scale):
-        translate = {0: vecDeb, 1: vecDeb}
+        translate = {0: vec(0,0,0), 1: vec(0,0,0)}
         rotate = {0: quaternion(), periode/4:
                   quaternion_from_axis_angle(
             vrot, degrees= 90), periode/2:
@@ -23,15 +23,17 @@ class Planete(KeyFrameControlNode):
         super().__init__(translate, rotate, scale)
         self.add(*load_textured(planete))
 
-class Planete2(KeyFrameControlNode):
+'''class Planete2(KeyFrameControlNode):
 
     def __init__(self, planete, vrot, periode, vecDeb, scale, vrot2,
                  periode2):
-        translate = {0: vecDeb, periode2/4: rotate(vrot2,90) @ vecDeb,
-                     periode2/2: rotate(vrot2,180)@vecDeb,
-                     3*periode2/4: rotate(vrot2, 270)@vecDeb,
-                     periode2: vecDeb}
-        rotate = {0: quaternion(), periode/4:
+
+        translate = {0: vecDeb, (periode2/4):
+                     rotate(vrot2,90)[:3,:3] @ vecDeb,
+                     (periode2/2): rotate(vrot2,180)[:3,:3]@vecDeb,
+                     (3*periode2/4): rotate(vrot2, 270)[:3,:3]@vecDeb,
+                     (periode2): vecDeb}
+        rotate2 = {0: quaternion(), periode/4:
                   quaternion_from_axis_angle(
             vrot, degrees= 90), periode/2:
                   quaternion_from_axis_angle(
@@ -39,15 +41,20 @@ class Planete2(KeyFrameControlNode):
                   quaternion_from_axis_angle(
             vrot, degrees = 270), periode: quaternion()}
         scale = {0: scale, 2: scale}
-        super().__init__(translate, rotate,scale, lerpCircle)
-        self.add(*load_textured(planete))
+        super().__init__(translate, rotate2,scale, lerpCircle)
+        self.add(*load_textured(planete))'''
 
 
 class PlaneteTransform(KeyFrameControlNode):
 
     def __init__(self, planete, vrot, periode1, vecDeb, scale,
-                 vrot2, periode2):
-        translate = {0: vec(0,0,0), 2: vec(0,0,0), 4: vec(0,0,0)}
+                 vdirec, periode2):
+        vrot2 = np.cross(vecDeb, vdirec)
+        translate = {0: vecDeb, (periode2/4):
+                     rotate(vrot2,90)[:3,:3] @ vecDeb,
+                     (periode2/2): rotate(vrot2,180)[:3,:3]@vecDeb,
+                     (3*periode2/4): rotate(vrot2, 270)[:3,:3]@vecDeb,
+                     (periode2): vecDeb}
         demi_grand_axe = math.pow(periode2*periode2*66740*math.pow(10,15)/(2*np.pi*np.pi),1/3)
         exentricite = ((np.linalg.norm(vecDeb)-demi_grand_axe)
                        / demi_grand_axe)
@@ -70,15 +77,16 @@ class PlaneteTransform(KeyFrameControlNode):
                   quaternion_from_axis_angle(vrot2,
                                              degrees=angle[i]) for i in
         range(33)}'''
-        rotate = {0: quaternion(), periode2/4:
+        '''rotate = {0: quaternion(), periode2/4:
                   quaternion_from_axis_angle(
             vrot2, degrees= 90), 2*periode2/4:
                   quaternion_from_axis_angle(
             vrot2, degrees = 180), 3*periode2/4:
                   quaternion_from_axis_angle(
-            vrot2, degrees = 270), periode2: quaternion()}
+            vrot2, degrees = 270), periode2: quaternion()}'''
+        rotate2 = {0: quaternion(), 1:quaternion()}
         scale2 = {0: 1, 2: 1, 4: 1}
-        super().__init__(translate, rotate, scale2)
+        super().__init__(translate, rotate2, scale2, lerpCircle)
         planeteP = Planete(planete, vrot, periode1, vecDeb,
                            scale)
         self.add(planeteP)
@@ -152,13 +160,14 @@ class SystemeSolaire(Node):
         rotate_keys_t_sun = {0: quaternion(), 2: quaternion()}
         scale_keys_t_sun = {0: 1, 2: 1, 4: 1}
 
-        #transform_terre = PlaneteTransform('objet3D/Earth_v1_L3.123cce489830-ca89-49f4-bb2a-c921cce7adb2/13902_Earth_v1_l3.obj',
-        #                           np.array([1,1,0]), 24,
-        #                           np.array([9500,0,0]),1,np.array([1,1,0]),100)
+        transform_terre = PlaneteTransform('objet3D/Earth_v1_L3.123cce489830-ca89-49f4-bb2a-c921cce7adb2/13902_Earth_v1_l3.obj',
+                                   np.array([1,1,0]), 1,
+                                   np.array([9500,0,0]),1,np.array([1,1,0]),36.5)
 
-        #transform_terre.add(terre)
-        transform_terre = Planete2('objet3D/Earth_v1_L3.123cce489830-ca89-49f4-bb2a-c921cce7adb2/13902_Earth_v1_l3.obj',np.array([1,1,0]), 24,
-                                   np.array([9500,0,0]),1,np.array([1,1,0]),100)
+        transform_lune = PlaneteTransform('objet3D/Moon/Moon2K.obj',
+                                   np.array([1,1,1]), 2,
+                                   np.array([3500,0,0]),19.5,np.array([1,1,1]),5)
+        transform_terre.add(transform_lune)
 
 
         transform_base = KeyFrameControlNode(translate_keys_t_sun,

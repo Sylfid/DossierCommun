@@ -31,8 +31,13 @@ def lerp(point_a, point_b, fraction):
 
 def lerpCircle(point_a, point_b, fraction):
 
-    moyenne = (np.linalg.norm(point_a) + np.linalg.norm(point_b)) / 2
-    return (point_a + fraction * (point_b - point_a)) * moyenne
+    costheta = np.dot(point_a, point_b)/(np.linalg.norm(point_a) * np.linalg.norm(point_b))
+    theta = np.arccos(costheta) 
+    theta = theta*180/np.pi
+    vrot = np.cross(point_a, point_b)
+    valeur = rotate(vrot,fraction*theta)[:3,:3]
+    result = valeur @ point_a
+    return result
 
 
 # Typical 4x4 matrix utilities for OpenGL ------------------------------------
