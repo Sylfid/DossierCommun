@@ -7,6 +7,7 @@ from transform import (quaternion_slerp, quaternion_matrix, quaternion,
                        quaternion_from_euler,
                        quaternion_from_axis_angle)
 import numpy as np
+from projectile import *
 
 class Planete(KeyFrameControlNode):
 
@@ -100,9 +101,6 @@ class SystemeSolaire(Node):
         super().__init__()
         soleil = Planete('objet3D/Sun_v2_L3.123cbc92ee65-5f03-4298-b1e6-b236b6b8b4aa/13913_Sun_v2_l3.obj',
                   np.array([1, 1, 0]), 10, np.array([0,0,0]), 2)
-        terre = Planete('objet3D/Earth_v1_L3.123cce489830-ca89-49f4-bb2a-c921cce7adb2/13902_Earth_v1_l3.obj',
-                                   np.array([1,1,0]), 24,
-                                   np.array([1500,0,0]),1)
 
         translate_keys_sun = {0: vec(0, 0, 0), 2: vec(0, 0, 0), 4: vec(0, 0, 0)}
         rotate_keys_sun = {0: quaternion(), 1:
@@ -160,6 +158,9 @@ class SystemeSolaire(Node):
         rotate_keys_t_sun = {0: quaternion(), 2: quaternion()}
         scale_keys_t_sun = {0: 1, 2: 1, 4: 1}
 
+        fusee = Projectile('objet3D/rocket_v1_L2.123c433550fa-0038-410c-a891-3367406a58a6/12216_rocket_v1_l2.obj',
+                     vec(0,0,0),rotate_keys_t_sun, 100,
+                     vec(0,0,150))
         transform_terre = PlaneteTransform('objet3D/Earth_v1_L3.123cce489830-ca89-49f4-bb2a-c921cce7adb2/13902_Earth_v1_l3.obj',
                                    np.array([1,1,0]), 1,
                                    np.array([9500,0,0]),1,np.array([1,1,0]),36.5)
@@ -174,5 +175,6 @@ class SystemeSolaire(Node):
                                    rotate_keys_t_sun,
                                               scale_keys_t_sun)
         transform_base.add(soleil)
+        transform_base.add(fusee) 
         transform_base.add(transform_terre)
         self.add(transform_base)

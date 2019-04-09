@@ -43,6 +43,16 @@ class KeyFrames:
         fraction = (time2 - self.times[position - 1])/(self.times[position] - self.times[position-1])
         return self.interpolate(self.values[position -1], self.values[position], fraction)
 
+    def add_value(self, time, value):
+        self.times = self.times + (time,)
+        self.values = self.values + (value,)
+
+    def get_Taille_time(self):
+        return self.times[len(self.times)-1]
+
+    def get_last_value(self):
+        return self.values[len(self.values)-1]
+
 
 class TransformKeyFrames:
     """ KeyFrames-like object dedicated to 3D transforms """
@@ -68,6 +78,26 @@ class TransformKeyFrames:
 
         return result_translation @ result_rotation @ result_scale
 
+    def get_Taille_rota(self):
+        return self.rotation.get_Taille_time()
+
+    def get_Taille_trans(self):
+        return self.translation.get_Taille_time()
+
+    def get_Taille_scale(self):
+        return self.scale.get_Taille_time()
+
+    def add_value_rota(self, value, time):
+        self.rotation.add_value(value,time)
+
+    def add_value_trans(self, value, time):
+        self.translation.add_value(value,time)
+
+    def add_value_scale(self, value, time):
+        self.scale.add_value(value,time)
+
+    def get_last_value_trans(self):
+        return self.translation.get_last_value()
 
 class KeyFrameControlNode(Node):
     """ Place node with transform keys above a controlled subtree """
@@ -83,3 +113,23 @@ class KeyFrameControlNode(Node):
         self.transform = self.keyframes.valueCycle(glfw.get_time())
         super().draw(projection, view, model, **param)
 
+    def get_Taille_rota(self):
+        return self.keyframes.get_Taille_rota()
+
+    def get_Taille_trans(self):
+        return self.keyframes.get_Taille_trans()
+
+    def get_Taille_scale(self):
+        return self.keyframes.get_Taille_scale()
+
+    def add_value_rota(self, value, time):
+        self.keyframes.add_value_rota(value,time)
+
+    def add_value_trans(self, value, time):
+        self.keyframes.add_value_trans(value,time)
+
+    def add_value_scale(self, value, time):
+        self.keyframes.add_value_scale(value,time)
+
+    def get_last_value_trans(self):
+        return self.keyframes.get_last_value_trans()
