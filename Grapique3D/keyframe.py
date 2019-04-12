@@ -35,7 +35,6 @@ class KeyFrames:
 
         # 1. ensure time is within bounds else return boundary keyframe
         taille = self.times[len(self.times)-1]
-        print(taille)
         time2 = time % taille
         # 2. search for closest index entry in self.times, using bisect_left function
         position = bisect_left(self.times, time2)

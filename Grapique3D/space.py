@@ -21,9 +21,16 @@ class Planete(KeyFrameControlNode):
                   quaternion_from_axis_angle(
             vrot, degrees = 270), periode: quaternion()}
         scale = {0: scale, 2: scale}
+        self.rayon = 1.;
         super().__init__(translate, rotate, scale)
         self.add(*load_textured(planete))
 
+
+    def is_Planete(self):
+        return True
+
+    def get_rayon(self):
+        return self.rayon
 '''class Planete2(KeyFrameControlNode):
 
     def __init__(self, planete, vrot, periode, vecDeb, scale, vrot2,
@@ -159,8 +166,8 @@ class SystemeSolaire(Node):
         scale_keys_t_sun = {0: 1, 2: 1, 4: 1}
 
         fusee = Projectile('objet3D/rocket_v1_L2.123c433550fa-0038-410c-a891-3367406a58a6/12216_rocket_v1_l2.obj',
-                     vec(0,0,0),rotate_keys_t_sun, 100,
-                     vec(0,0,150))
+                     vec(0,0,0),rotate_keys_t_sun, 1,
+                     vec(0,0,1500))
         transform_terre = PlaneteTransform('objet3D/Earth_v1_L3.123cce489830-ca89-49f4-bb2a-c921cce7adb2/13902_Earth_v1_l3.obj',
                                    np.array([1,1,0]), 1,
                                    np.array([9500,0,0]),1,np.array([1,1,0]),36.5)
