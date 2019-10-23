@@ -11,7 +11,7 @@ import glfw                 # lean window system wrapper for OpenGL
 import numpy as np          # all matrix manipulations & OpenGL args
 from transform import translate, rotate, scale, vec, perspective
 from transform import Trackball, identity
-#import pyassimp                     # 3D ressource loader
+import pyassimp                     # 3D ressource loader
 #import pyassimp.errors              # assimp error management + exceptions
 
 
@@ -71,7 +71,7 @@ uniform mat4 model;
 
 
 void main() {
-    gl_Position =  projection * viex * model * vec4(position, 1);
+    gl_Position =  projection * view * model * vec4(position, 1);
     fragColor = color;
 
 }"""
