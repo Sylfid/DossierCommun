@@ -12,7 +12,7 @@ close all, clear all
 % num_n : nombre de normales calcules (pour le calcul des isophotes)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BezierSurf = load('surface1');  % read control points
+BezierSurf = load('surface5');  % read control points
 %BezierSurf = load('surface2'); % read control points
 %BezierSurf = load('surface3'); % read control points
 %BezierSurf = load('surface4'); % read control points
