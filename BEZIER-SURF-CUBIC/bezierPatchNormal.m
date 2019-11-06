@@ -17,14 +17,17 @@ for i = 1:3
 end
 
 
-n=length(u)
-p=length(v)
+n=length(u);
+p=length(v);
+
 for i=1:n
     for j=1:p
-        eval1=evaldeCasteljau2D(Dx,(i-1)*(1/(n-1)));
-        eval2=evaldeCasteljau2D(Dy,(j-1)*(1/(p-1)));
+        eval1=evaldeCasteljau2D(Dx,(i-1)*(1/(n-1)),(j-1)*(1/(p-1)));
+        eval2=evaldeCasteljau2D(Dy,(i-1)*(1/(n-1)),(j-1)*(1/(p-1)));
         prodsca = cross(eval1,eval2);
-        N(i,j)=prodsca/norm(prosca);
+        N(i,j,1)=prodsca(1)/norm(prodsca);
+        N(i,j,2)=prodsca(2)/norm(prodsca);
+        N(i,j,3)=prodsca(3)/norm(prodsca);
     end
 end
 

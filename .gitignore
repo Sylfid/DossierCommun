@@ -1,3 +1,4 @@
 *.o
 Graphique3D/*
-GPGPU_TP/Makefile
+*.pyc
+*.ipynb

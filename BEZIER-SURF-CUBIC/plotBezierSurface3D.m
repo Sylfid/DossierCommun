@@ -73,3 +73,4 @@ title('\bf Surface de Bezier avec Faceted Shading');
 view(3); box;  view(21,19)
 % %-----------------------------------------------% 
 
+

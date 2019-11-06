@@ -52,6 +52,8 @@ B
 u = linspace(0,1,num_p); 
 v = u; 
 
+N = bezierPatchNormal(B(:,:,:,1),u,v);
+
 
 %  ------------------------------------
 % Cubic Bezier patches 
@@ -71,10 +73,13 @@ end
 % ------------------------------------
 % Computing Isophotes
   
-
-
-
+L=[1 0 1];
+I=ligneIso(B,L,u,v,0.5);
+if length(I(:,1))<10
+    error("waou");
+end
 % ------------------------------------
 % Visualisation d'un patch/surface de Bezier
 %  plotBezierPatch3D(B(:,:,:,2),S(:,:,:,2)) % plot d'un seul patch k
   plotBezierSurface3D(B,S)		   % plot de tous les np patches
+  plotLigneIso(I)
