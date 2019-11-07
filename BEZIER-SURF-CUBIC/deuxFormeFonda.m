@@ -1,22 +1,17 @@
-function H = deuxFormFonda(B,t,s)
-    Dx=calculDerivee(B,1);
-    Dy=calculDerivee(B,2);
-    Dxx=calculDerivee(Dx,1);
-    Dxy=calculDerivee(Dx,2);
-    Dyx=calculDerivee(Dy,1);
-    Dyy=calculDerivee(Dy,2);
+function H = deuxFormFonda(B,u,v)
+    Dxx=bezierDeriveeSeconde_uu(B,u,v)
+    Dxy=bezierDeriveeSeconde_uv(B,u,v);
+    Dyy=bezierDerive_vv(B,u,v);
     N=bezierPatchNormal(B,u,v);
     Hrep=[];
+    n=length(u);
+    p=length(v);
     for i=1:n
         for j=1:p
-            Xuu=evaldeCasteljau2D(Dxx,(i-1)*(1/(n-1)),(j-1)*(1/(p-1)));
-            Xuv=evaldeCasteljau2D(Dxy,(i-1)*(1/(n-1)),(j-1)*(1/(p-1)));
-            Xvu=evaldeCasteljau2D(Dyx,(i-1)*(1/(n-1)),(j-1)*(1/(p-1)));
-            Xvv=evaldeCasteljau2D(Dyy,(i-1)*(1/(n-1)),(j-1)*(1/(p-1)));
-            Hrep(i,j,1,1)=dot(Xuu,N);
-            Hrep(i,j,1,2)=dot(Xuv,N);
-            Hrep(i,j,2,1)=dot(Xvu,N);
-            Hrep(i,j,2,2)=dot(Xvv,N);
+            Hrep(i,j,1,1)=dot(Dxx(i,j,:),N(i,j,:));
+            Hrep(i,j,1,2)=dot(Dxy(i,j,:),N(i,j,:));
+            Hrep(i,j,2,1)=dot(Dxy(i,j,:),N(i,j,:));
+            Hrep(i,j,2,2)=dot(Dyy(i,j,:),N(i,j,:));
         end
     end
     H=Hrep;

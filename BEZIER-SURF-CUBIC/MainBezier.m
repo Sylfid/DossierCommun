@@ -12,7 +12,7 @@ close all, clear all
 % num_n : nombre de normales calcules (pour le calcul des isophotes)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BezierSurf = load('surface5');  % read control points
+BezierSurf = load('surface1');  % read control points
 %BezierSurf = load('surface2'); % read control points
 %BezierSurf = load('surface3'); % read control points
 %BezierSurf = load('surface4'); % read control points
@@ -73,13 +73,14 @@ end
 % ------------------------------------
 % Computing Isophotes
   
-L=[1 0 1];
-I=ligneIso(B,L,u,v,0.5);
-if length(I(:,1))<10
-    error("waou");
-end
+L=[1 0 -1];
+I=ligneIso(B,L/norm(L),u,v,1);
+
+K=courbure(B,u,v);
+
 % ------------------------------------
 % Visualisation d'un patch/surface de Bezier
 %  plotBezierPatch3D(B(:,:,:,2),S(:,:,:,2)) % plot d'un seul patch k
-  plotBezierSurface3D(B,S)		   % plot de tous les np patches
-  plotLigneIso(I)
+  %plotBezierSurface3D(B,S)		   % plot de tous les np patches
+  %plotLigneIso(I,S,u,v)
+  plotLigneIso(I,S,u,v);

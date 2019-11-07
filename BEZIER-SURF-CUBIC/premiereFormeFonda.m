@@ -1,17 +1,18 @@
 function G = premiereFormeFonda(B,u,v)
-    Dx = calculDerivee(B,1);
-    Dy = calculDerivee(B,2);
+    Dx = bezierDerive_u(B,u,v);
+    Dy = bezierDerive_v(B,u,v);
     n=length(u);
     p=length(v);
     Grep=[];
     for i=1:n
         for j=1:p
-            Xu=evaldeCasteljau2D(Dx,(i-1)*(1/(n-1)),(j-1)*(1/(p-1)));
-            Xv=evaldeCasteljau2D(Dy,(i-1)*(1/(n-1)),(j-1)*(1/(p-1)));
-            Grep(i,j,1,1)=dot(Xu,Xu);
-            Grep(i,j,1,2)=dot(Xu,Xv);
-            Grep(i,j,2,1)=dot(Xv,Xu);
-            Grep(i,j,2,2)=dot(Xv,Xv);
+            Grep(i,j,1,1)=dot(Dx(i,j,:),Dx(i,j,:));
+            Grep(i,j,1,2)=dot(Dx(i,j,:),Dy(i,j,:));
+            Grep(i,j,2,1)=dot(Dy(i,j,:),Dx(i,j,:));
+            Grep(i,j,2,2)=dot(Dy(i,j,:),Dy(i,j,:));
         end
     end
+
+    Ginter = Grep(1,1,:,:);
+    %zeg = Ginter(2,1);
     G=Grep;
