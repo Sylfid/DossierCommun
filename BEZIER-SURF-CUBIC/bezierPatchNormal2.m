@@ -16,12 +16,13 @@ for i=1:n
         prodsca = [Dx(i,j,2)*Dy(i,j,3)-Dx(i,j,3)*Dy(i,j,2),Dx(i,j,1)*Dy(i,j,3)-Dx(i,j,3)*Dy(i,j,1),Dx(i,j,1)*Dy(i,j,2)-Dx(i,j,2)*Dy(i,j,1)];
         normprodsca = (prodsca(1)*prodsca(1)+prodsca(2)*prodsca(2)+prodsca(3)*prodsca(3)).^(1/2);
         if normprodsca ~=0
-            N(i,j,1)=prodsca(1)/normprodsca;% norm(prodsca);
-            N(i,j,2)=prodsca(2)/normprodsca;%norm(prodsca);
-            N(i,j,3)=prodsca(3)/normprodsca;%norm(prodsca);
-        end
-        if norm([N(i,j,1),N(i,j,2),N(i,j,3)]-1) < 0.95
-            error("casse");
+            N(i,j,1)=prodsca(1)/normprodsca;
+            N(i,j,2)=prodsca(2)/normprodsca;
+            N(i,j,3)=prodsca(3)/normprodsca;
+        else
+            N(i,j,1)=0;
+            N(i,j,2)=0;
+            N(i,j,3)=0;
         end
     end
 end

@@ -11,7 +11,6 @@ function K = courbure(B,u,v)
             Gbis(2,2) = G(i,j,2,2);
             invG = inv(Gbis);
             
-            Hbis=H(i,j,:,:);
             Hbis(1,1)=H(i,j,1,1);
             Hbis(1,2)=H(i,j,1,2);
             Hbis(2,1)=H(i,j,2,1);

@@ -13,17 +13,34 @@ function X = ligneIso(B,L,u,v,k)
         end
         for j=1:p
             if abs(I(i,j)-k)<epsilon
-                eval=evaldeCasteljau2D(B,(i-1)*(1/(n-1)),(j-1)*(1/(p-1)))
+                evalu=evaldeCasteljau2D(B,(i-1)*(1/(n-1)),(j-1)*(1/(p-1)))
                 compteur = compteur +1;
                 
-                Xpre(compteur2,compteur,1)=eval(1);
-                Xpre(compteur2,compteur,2)=eval(2);
-                Xpre(compteur2,compteur,3)=eval(3);
+                Xpre(compteur2,compteur,1)=evalu(1);
+                Xpre(compteur2,compteur,2)=evalu(2);
+                Xpre(compteur2,compteur,3)=evalu(3);
             end
         end
     end
     if compteur+compteur2 == 0
         error("Pas de points isophote")
     end
+    n=length(Xpre(:,1));
+    p=length(Xpre(1,:));
+    for i=1:n
+        for j=1:p
+            if Xpre(i,j,:)==0 && j<p
+                if Xpre(i,j+1,:)==0
+                    if j==1
+                        error("Le programme est mal code")
+                    end
+                    Xpre(i,j,:)=Xpre(i,j-1,:);
+                end
+            else if Xpre(i,j,:)==0 && j==p
+                Xpre(i,j,:)=Xpre(i,j-1,:);
+            end
+        end
+    end
+
     X=Xpre
     

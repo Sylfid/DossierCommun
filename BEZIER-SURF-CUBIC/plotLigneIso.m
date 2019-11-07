@@ -7,9 +7,6 @@ figure, hold on
 if(length(B(:,:,:)))==0
     error("Il n'y a pas assez de points")
 end
-if length(B(1,1,:))~=3
-    error('wowowo')
-end
 %N= bezierPatchNormal(B,u,v);
 
 for k=1:np

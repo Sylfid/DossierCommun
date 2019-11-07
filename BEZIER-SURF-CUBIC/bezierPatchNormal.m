@@ -26,11 +26,14 @@ for i=1:n
         eval2=evaldeCasteljau2D(Dy,(i-1)*(1/(n-1)),(j-1)*(1/(p-1)));
         %prodsca = cross(eval1,eval2);
         prodsca = [eval1(2)*eval2(3)-eval1(3)*eval2(2),eval1(1)*eval2(3)-eval1(3)*eval2(1),eval1(1)*eval2(2)-eval1(2)*eval2(1)];
-        N(i,j,1)=prodsca(1)/norm(prodsca);
-        N(i,j,2)=prodsca(2)/norm(prodsca);
-        N(i,j,3)=prodsca(3)/norm(prodsca);
-        if norm([N(i,j,1),N(i,j,2),N(i,j,3)]-1) < 0.95
-            error("casse");
+        if norm(prodsca)~=0
+            N(i,j,1)=prodsca(1)/norm(prodsca);
+            N(i,j,2)=prodsca(2)/norm(prodsca);
+            N(i,j,3)=prodsca(3)/norm(prodsca);
+        else
+            N(i,j,1)=0;
+            N(i,j,2)=0;
+            N(i,j,3)=0;
         end
     end
 end
