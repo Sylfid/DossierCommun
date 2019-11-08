@@ -1,5 +1,5 @@
 function H = deuxFormFonda(B,u,v)
-    Dxx=bezierDeriveeSeconde_uu(B,u,v)
+    Dxx=bezierDeriveeSeconde_uu(B,u,v);
     Dxy=bezierDeriveeSeconde_uv(B,u,v);
     Dyy=bezierDerive_vv(B,u,v);
     N=bezierPatchNormal(B,u,v);

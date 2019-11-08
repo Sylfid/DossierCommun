@@ -12,7 +12,7 @@ end
 for k=1:np
     surface(S(:,:,1,k),S(:,:,2,k),S(:,:,3,k), 'FaceColor','y', 'LineStyle', 'none')
     %quiver3(S(:,:,1,k),S(:,:,2,k),S(:,:,3,k),N(:,:,1),N(:,:,2),N(:,:,3))
-    surface(B(:,:,1),B(:,:,2),B(:,:,3),'FaceColor','r')
+    surface(B(:,:,1,k),B(:,:,2,k),B(:,:,3,k),'FaceColor','r')
     
 
 end

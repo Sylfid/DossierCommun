@@ -12,19 +12,19 @@ close all, clear all
 % num_n : nombre de normales calcules (pour le calcul des isophotes)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BezierSurf = load('surface1');  % read control points
+BezierSurf = load('psurface1');  % read control points
 %BezierSurf = load('surface2'); % read control points
 %BezierSurf = load('surface3'); % read control points
 %BezierSurf = load('surface4'); % read control points
 %load('teapot'); %loading matrix B
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-num_p=20;                    % nombre de valeurs de parametre en direction u et v
-num_n=20;		     % plus num_p est grand plus la surface paraitra lisse
+num_p=40;                    % nombre de valeurs de parametre en direction u et v
+num_n=40;		     % plus num_p est grand plus la surface paraitra lisse
 			     % et plus le calcul sera long
 
 %-------------------------------------------------
-[nb,~] = size(BezierSurf) % nombre de points de controle dans le fichier
-np = floor(nb/16) % nombre de patches composant la surface
+[nb,~] = size(BezierSurf); % nombre de points de controle dans le fichier
+np = floor(nb/16); % nombre de patches composant la surface
                    % Il faudrait verivier que nb est un multiple de 16 %
 % Matrice B des points de controle
 for k=1:np
@@ -73,14 +73,15 @@ end
 % ------------------------------------
 % Computing Isophotes
   
-L=[1 0 -1];
-I=ligneIso(B,L/norm(L),u,v,1);
+L=[0 0 -1];
+I=ligneIso(B,L/norm(L),u,v,-1);
 
 K=courbure(B,u,v);
 
 % ------------------------------------
 % Visualisation d'un patch/surface de Bezier
 %  plotBezierPatch3D(B(:,:,:,2),S(:,:,:,2)) % plot d'un seul patch k
-  %plotBezierSurface3D(B,S)		   % plot de tous les np patches
-  %plotLigneIso(I,S,u,v)
+  %plotBezierSurface3D(B,S);		   % plot de tous les np patches
   plotLigneIso(I,S,u,v);
+  %plotNormal(B,S,u,v);
+  %plotCourbure(B,S,u,v);
