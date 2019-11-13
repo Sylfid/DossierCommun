@@ -12,6 +12,9 @@ uniform float shininess;
 uniform float eta;
 
 in vec4 position;
+in vec4 vertColor;
+in vec2 textCoords;
+in vec4 vertNormal;
 
 out vec4 fragColor;
 
@@ -19,38 +22,46 @@ out vec4 fragColor;
 vec4 getColorFromEnvironment(in vec3 direction)
 {
     // TODO
+     
     return vec4(1);
 }
 
 
 
 bool raySphereIntersect(in vec3 start, in vec3 direction, out vec3 newPoint) {
-    vec4 cp = start - position;
-    float ps = dot(direction, cp);
-    if(ps*ps - length(cp)*length(cp) + radius*radius > 0){
-
+    vec3 cp = start - position.xyz;
+    float ps = dot(normalize(direction), cp);
+    float delta = ps*ps - length(cp)*length(cp) + radius*radius;
+    if(delta > 0){
+        float lambda = (-2*ps - pow(delta,1/2))/2; 
+        newPoint = cp + lambda*direction;
+        return true; 
     }
     else{
         return false;
     }
 }
 
+
 void main(void)
 {
     // Step 1: I need pixel coordinates. Division by w?
+
     vec4 worldPos = position;
     worldPos.z = 1; // near clipping plane
     worldPos = persp_inverse * worldPos;
     worldPos /= worldPos.w;
     worldPos.w = 0;
     worldPos = normalize(worldPos);
+
     // Step 2: ray direction:
+
     vec3 u = normalize((mat_inverse * worldPos).xyz);
     vec3 eye = (mat_inverse * vec4(0, 0, 0, 1)).xyz;
 
     // TODO
-
+    
 
     vec4 resultColor = vec4(0,0,0,1);
-    fragColor = resultColor;
+    fragColor = texture2D(envMap, textCoords);
 }
