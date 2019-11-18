@@ -18,12 +18,70 @@ in vec4 vertNormal;
 
 out vec4 fragColor;
 
+float getFresnelReflected(in vec3 directionRay, in vec3 normal)
+{
+    float cosTheta = dot(-directionRay,normal);
+    float ci = sqrt(eta*eta-(1-cosTheta*cosTheta));
+    float FsTheta = ((cosTheta - ci)/(cosTheta + ci))*((cosTheta - ci)/(cosTheta + ci));
+    float FpTheta = ((eta*eta*cosTheta - ci)/(eta*eta*cosTheta + ci));
+    FpTheta = FpTheta * FpTheta;
+
+    return (FsTheta + FpTheta)/2;
+}
+
+float getTheta1(in vec3 direction)
+{
+    float theta = 0.0;
+
+    if(direction.x==0){
+        if(direction.z<0){
+            theta = -M_PI/2;
+        }
+        else if(direction.z>0){
+            theta = M_PI/2;
+        }
+    } 
+    else{
+        theta = atan(direction.z/direction.x);
+        if(direction.x<0){
+            if(direction.z<0){
+                theta = -M_PI - theta;
+            }
+            else{
+                theta = M_PI - theta;
+            }
+        }
+    }
+    return theta;
+}
+
+float getTheta2(in vec3 direction)
+{
+    float longxz = direction.x*direction.x + direction.z*direction.z;
+    float theta2 = 0.0;
+    if(longxz == 0){
+        if(direction.y !=0){
+            if(direction.y > 0){
+                theta2 = -M_PI;
+            }
+            else{
+                theta2 = M_PI;
+            }
+        }
+    }
+    else{
+        theta2 = atan(direction.y/sqrt(longxz));
+    }
+    return theta2;
+}
 
 vec4 getColorFromEnvironment(in vec3 direction)
 {
-    // TODO
-     
-    return vec4(1);
+    // TODO 
+    float theta = getTheta1(direction);
+    float theta2 = getTheta2(direction);
+
+    return texture2D(envMap, vec2((theta+M_PI)/(2*M_PI),(theta2+M_PI/2)/M_PI));
 }
 
 
@@ -42,6 +100,34 @@ bool raySphereIntersect(in vec3 start, in vec3 direction, out vec3 newPoint) {
     }
 }
 
+void raySphereIntersect2(in vec3 start, in vec3 direction, out vec3 newPoint) {
+    vec3 cp = start - position.xyz;
+    float ps = dot(normalize(direction), cp);
+    float delta = ps*ps - length(cp)*length(cp) + radius*radius;
+    if(delta > 0){
+        float lambda = (-2*ps + pow(delta,1/2))/2; 
+        newPoint = cp + lambda*direction;
+    }
+}
+
+vec4 getColorFromEnvironmentWithSphere(in vec3 start, in vec3 direction){
+    vec3 newPoint;
+    vec3 secondPoint;
+
+    if(raySphereIntersect(start, direction, newPoint)){
+
+        float coefFres = getFresnelReflected(direction, vertNormal.xyz);
+        vec3 reflectedRay = reflect(direction, normalize(newPoint - center));
+        vec3 refractedRay = refract(direction, normalize(newPoint - center), eta);
+        raySphereIntersect2(newPoint, refractedRay, secondPoint);
+        vec3 newRefractedRay = refract(direction, secondPoint, eta);
+        return getColorFromEnvironment(reflectedRay);
+        return coefFres*getColorFromEnvironment(reflectedRay) + (1-coefFres)*getColorFromEnvironment(newRefractedRay);
+    }
+    else{
+        return getColorFromEnvironment(direction);
+    }
+}
 
 void main(void)
 {
@@ -63,5 +149,5 @@ void main(void)
     
 
     vec4 resultColor = vec4(0,0,0,1);
-    fragColor = texture2D(envMap, textCoords);
+    fragColor = getColorFromEnvironmentWithSphere(eye, u);
 }
