@@ -138,9 +138,6 @@ vec4 getColorFromEnvironmentWithSphere(in vec3 start, in vec3 direction){
             else{
 
                 couleur = couleur + coefFres*coefFres2*getColorFromEnvironment(reflectedRay);
-                if(!transparent){
-                    i=10;
-                }
                 if(raySphereIntersect(newPoint, refractedRay, secondPoint)){
 
                     newPoint = secondPoint;
@@ -182,3 +179,4 @@ void main(void)
     vec4 resultColor = vec4(1,0,0,0.0);
     fragColor = getColorFromEnvironmentWithSphere(eye, u);
 }
+
