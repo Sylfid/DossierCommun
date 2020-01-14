@@ -1,4 +1,7 @@
+*.log
+GPGPU_TP/viewer/shaders/.nfs000000000062012400000058
 *.o
+*.aux
 Graphique3D/*
 *.pyc
 *.ipynb
