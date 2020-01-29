@@ -32,7 +32,7 @@ mat make_carriers( int Nc, int Nv, unsigned long int key, uint ups )
       vec_delete(v);
     }  
 
-  mat_gs( temp ); 
+  mat_gs( temp );
 
   for ( i= 0; i< Nc; i++ ) 
     {
@@ -67,7 +67,7 @@ vec get_correlations( mat y, uint key, uint sz, uint Nc, bvec mest, uint ups )
     vec vecTuile;
     for(int i=0; i<Nc; i++){
         ui = mat_get_col(U, i);
-        vecTuile = mat_to_vac(tuile);
+        vecTuile = mat_to_vec(tuile);
     }
     vec corrs = vec_new_zeros( Nc );
 
